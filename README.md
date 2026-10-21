@@ -1,2 +1,2 @@
-# llm-wiki-electron
-A flexible frontend for LLM knowledge base management
+# Pulsar Wiki Electron
+A desktop-app version of PulsarWiki.
