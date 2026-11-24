@@ -36,6 +36,47 @@ test('closing a text preview clears it so another source can open', () => {
   assert.equal(c.r.pages.size, 0);
 });
 
+test('Markdown sources render by default and retain exact text for source selection', async () => {
+  const c = client();
+  const body = '# Timing\n\n**Frequency** $f$';
+  c.context.state.documentSession = 1;
+  c.context.fetch = async url => ({ ok: true, json: async () => {
+    if (url.endsWith('/documents')) return { document: { id: 'source' }, changedDocuments: [] };
+    if (url.endsWith('/pages/1')) return { text: body };
+    return { documents: [] };
+  } });
+  const span = { dataset: {}, firstChild: { textContent: body } };
+  const layer = { hidden: false };
+  const overlay = {};
+  const wrap = c.document.createElement('div');
+  wrap.querySelector = selector => ({ span, '.textLayer': layer, '.reading-overlays': overlay }[selector]);
+  const preview = { hidden: false };
+  c.document.createElement = tag => tag === 'article' ? preview : wrap;
+  const rendered = [];
+  const typeset = [];
+  c.context.renderMd = content => { rendered.push(content); return '<h1>Timing</h1><p><strong>Frequency</strong> $f$</p>'; };
+  c.context.typesetMath = node => typeset.push(node);
+
+  const reading = c.context.window.ActiveReading;
+  await reading.openText('timing.Markdown', 1);
+  assert.deepEqual(rendered, [body]);
+  assert.deepEqual(typeset, [preview]);
+  assert.match(preview.innerHTML, /<h1>Timing<\/h1>/);
+  assert.equal(preview.hidden, false);
+  assert.equal(layer.hidden, true);
+  assert.equal(span.textContent, body);
+  assert.deepEqual(span.dataset, { textLength: String(body.length) });
+
+  const toggle = c.nodes.get('reading-markdown-source');
+  assert.equal(toggle.hidden, false);
+  toggle.listeners.click();
+  assert.equal(toggle.attributes['aria-pressed'], 'true');
+  assert.equal(layer.hidden, false);
+  assert.equal(preview.hidden, true);
+  reading.close();
+  assert.equal(toggle.hidden, true);
+});
+
 test('workspace Find selects a PDF passage across a line break using text-layer offsets', async () => {
   const c = client();
   const hash = '#file/paper.pdf?page=1&start=7&end=19';

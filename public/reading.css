@@ -75,13 +75,15 @@
 .reading-text-document #pdf-zoom-value, .reading-text-document #pdf-fit,
 .reading-text-document #reading-rotate, .reading-text-document #reading-region,
 .reading-text-document #reading-thumbnails-toggle { display:none; }
-.reading-text-document .document-stage { background:#fff; color:#000; }
-[data-theme="dark"] .reading-text-document .document-stage { background:#000; color:#fff; }
+#reading-markdown-source[hidden], #reading-highlights-toggle[hidden] { display:none; }
+.reading-text-document .document-stage { --reading-text-color:#000; background:#fff; color:var(--reading-text-color); }
+[data-theme="dark"] .reading-text-document .document-stage { --reading-text-color:#fff; background:#000; }
 .reading-page.reading-text-page { width:min(900px, 100%); min-height:100%; padding:32px; box-sizing:border-box; background:transparent; overflow:visible; contain:none; content-visibility:visible; }
 [data-theme="dark"] .reading-text-page .reading-overlays { mix-blend-mode:normal; opacity:.4; }
 .reading-text-page .textLayer { position:relative; inset:auto; overflow:visible; line-height:1.6; }
 .reading-page.reading-text-page .textLayer pre { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; font:inherit; transform:none; }
 .reading-text-page .textLayer pre span { position:static; color:inherit; white-space:pre-wrap; font:inherit; transform:none; }
+.reading-markdown-preview { --text-1:var(--reading-text-color); --text-2:var(--reading-text-color); overflow-wrap:anywhere; }
 .reading-mark { position:absolute; border:0; border-radius:1px; opacity:1; pointer-events:none; }
 [data-color="yellow"], [data-selection-color="yellow"] { --mark:var(--highlight-yellow); }
 [data-color="green"], [data-selection-color="green"] { --mark:var(--highlight-green); }

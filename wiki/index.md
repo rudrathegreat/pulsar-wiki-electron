@@ -105,6 +105,7 @@ Ask AI uses the highlight to identify the subject of the question and looks for 
 - PulsarWiki can run as a Windows desktop app with a native project folder picker. [Windows installation and launch](../README.md#windows-desktop-app)
 - The reader supports switching to another saved source after viewing a Markdown or plain-text file. [Reader implementation](../public/reading.js)
 - Markdown and plain-text source previews use white text on black in dark mode and black text on white in light mode. [Reader styles](../public/reading.css)
+- Saved Markdown sources open with formatted text and LaTeX equations. Use **Markdown source** to highlight passages in the original text. Search matches and saved passage links open in that view. [Reader implementation](../public/reading.js)
 - Project Files refreshes automatically when files or folders change and preserves expanded folders. Its sticky header displays the section title. [Project files interface](../public/workspace-explorer.js) [Project files panel](../public/index.html)
 - Chat displays wiki activity in a full-width, theme-aware collapsible panel before the response, with an indicator while work is underway.
 - [[research-notebooks]]: Embedded JupyterLab for free-form local Python analyses, cited paper and wiki transfers, automatic local history, clean reruns, and on-request recall linked to historical cells.
@@ -116,4 +117,4 @@ All 41 wiki pages were updated to use the two-sentence declaration format. [[log
 ---
 *Last updated: 2026-11-24*
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update documented theme colors for Markdown and plain-text source previews.
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update documented formatted Markdown source previews and how to access highlights and search matches.
