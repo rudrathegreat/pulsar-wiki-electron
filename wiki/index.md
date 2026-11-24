@@ -112,10 +112,11 @@ Ask AI uses the highlight to identify the subject of the question and looks for 
 - [[project-handover]]: A project handover drafted from complete selected file text using backend instructions, displayed as Markdown for researcher review before publication.
 - [[active-reading]]: PDF reading with highlight helpers, AI responses linked to selected passages, wiki notes, and reference discovery.
 - Private reading connections use the same link styling as other wiki links. The Windows installer includes this fix. [Reading connection rendering](../public/reading.js) [Windows installation and launch](../README.md#windows-desktop-app)
+- PulsarWiki has an amd64 `.deb` installer for Ubuntu and Debian desktops. Launch it from the app menu to start the bundled local server. [Linux installation and launch](../README.md#linux-desktop-app)
 
 All 41 wiki pages were updated to use the two-sentence declaration format. [[log]]
 
 ---
-*Last updated: 2026-11-24*
+*Last updated: 2026-11-25*
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update documented the shared wiki link styling for private reading connections and its inclusion in the rebuilt Windows installer.
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-25. This update documented the Linux desktop installer and linked to the installation guide, and changes were approved by the author before implementation.

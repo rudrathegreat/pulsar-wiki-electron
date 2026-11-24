@@ -473,4 +473,6 @@ All major updates to the wiki are recorded here.
 
 | 2026-11-24 | Workspace / application | Rebuilt the Windows x64 installer with the link styling fix for private reading connections. [Installer build instructions](../README.md#windows-desktop-app) |
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the Windows installer rebuild for the private reading connection link styling fix.
+| 2026-11-25 | Workspace / application | Added an amd64 Debian package build for the PulsarWiki desktop app. [Packaging configuration](../package.json) [Linux installation and launch](../README.md#linux-desktop-app) |
+
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-25. This update recorded the Linux desktop installer build, and changes were approved by the author before implementation.

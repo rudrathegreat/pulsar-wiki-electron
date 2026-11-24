@@ -1,6 +1,6 @@
 # PulsarWiki
 
-PulsarWiki is a local app for source-backed research workspaces. It runs as a Windows desktop app or in a web browser. Open an existing research workspace, create a new project, or open this repository to use the pulsar astronomy wiki. Its chat uses an eligible ChatGPT subscription, while wiki files and saved conversations remain on the local machine.
+PulsarWiki is a local app for source-backed research workspaces. It runs as a desktop app on Windows and Linux, or in a web browser. Open an existing research workspace, create a new project, or open this repository to use the pulsar astronomy wiki. Its chat uses an eligible ChatGPT subscription, while wiki files and saved conversations remain on the local machine.
 
 ## Windows desktop app
 
@@ -15,6 +15,23 @@ npm.cmd run build:windows
 ```
 
 The build writes the installer under `dist/`. The desktop app stores its NASA ADS token in its per-user profile and opens ChatGPT sign-in in the default browser. Return to PulsarWiki after completing sign-in. Live notebooks still use a separate local Python and JupyterLab environment.
+
+## Linux desktop app
+
+On an x86-64 Ubuntu or Debian desktop, open a terminal in the folder containing the `.deb` and install it with APT. Replace `1.0.0` with the version in the filename if needed.
+
+```sh
+sudo apt install ./pulsarwiki_1.0.0_amd64.deb
+```
+
+Launch **PulsarWiki** from the app menu or run `pulsarwiki` as your regular user. The package includes Electron and starts the local server automatically. Live notebooks use a separate local Python and JupyterLab environment. Run `sudo apt remove pulsarwiki` to remove the app. Projects and per-user settings stay on disk.
+
+To build the `.deb` from an x86-64 Linux checkout with Node.js 22.12 or newer, run the following commands. Find the package in `dist/`.
+
+```sh
+npm ci
+npm run build:linux
+```
 
 ## Requirements
 
@@ -40,7 +57,7 @@ Open the displayed loopback address, normally <http://127.0.0.1:3000>. The serve
 
 ## Research workspaces
 
-On a new server session, choose **New project** or **Open project** from the welcome screen. **New project** asks for a project name and a parent folder, entered as a full path or selected with **Browse**. **Create project** creates a named subfolder, fills it with a clean research template, and opens it automatically. The template includes `wiki/` with starter index and log pages, empty `raw/` and `notebooks/` folders, private `.pulsarwiki/` data, `GEMINI.md`, `AGENTS.md`, `CLAUDE.md`, an empty `references.bib`, and `.gitignore`. Existing files or folders with the same name are never reused or overwritten. **Open project** selects an existing folder with the system dialog; recent folders can also be reopened directly. On Linux the native dialog requires Zenity.
+On a new server session, choose **New project** or **Open project** from the welcome screen. **New project** asks for a project name and a parent folder, entered as a full path or selected with **Browse**. **Create project** creates a named subfolder, fills it with a clean research template, and opens it automatically. The template includes `wiki/` with starter index and log pages, empty `raw/` and `notebooks/` folders, private `.pulsarwiki/` data, `GEMINI.md`, `AGENTS.md`, `CLAUDE.md`, an empty `references.bib`, and `.gitignore`. Existing files or folders with the same name are never reused or overwritten. **Open project** selects an existing folder with the system dialog. Recent folders can also be reopened directly. On Linux, the browser-based app uses Zenity for its folder dialog, and the desktop app uses Electron’s system dialog.
 
 Each selected folder holds its own `wiki/`, immutable `raw/` sources, `.pulsarwiki/chat/` conversations, and `.pulsarwiki/reading/` annotations and drafts. Open project requires the template's `wiki/`, `raw/`, and `notebooks/` folders, `wiki/index.md`, `wiki/log.md`, `GEMINI.md`, `AGENTS.md`, `CLAUDE.md`, `references.bib`, and `.gitignore` files. Incompatible folders remain untouched and show a popup: "this project is not compatible. Please select a different project". Private `.pulsarwiki/` data can be recreated when absent, including after cloning a project. A new workspace starts with general research instructions; existing projects retain their own instructions and sources. Existing source files should be placed in that project's `raw/` folder to appear in Files.
 
