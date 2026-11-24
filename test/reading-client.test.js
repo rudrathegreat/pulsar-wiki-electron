@@ -25,6 +25,17 @@ function populate(c) {
   c.r.data = { documents: [{ id: 'document-one', aliases: ['paper.pdf'], available: true }], highlights: [{ id: 'highlight-one', documentId: 'document-one', text: 'Measured timing result.', kind: 'text', color: 'yellow', categories: ['result'], revision: 2, anchors: [{ page: 1, label: '1', rects: [[10, 20, 40, 30]] }] }, { id: 'highlight-two', documentId: 'document-one', text: 'Assumption.', kind: 'text', color: 'blue', categories: [], revision: 1, anchors: [{ page: 2, label: '2', rects: [[10, 20, 40, 30]] }] }], annotations: [{ id: 'annotation-private', highlightId: 'highlight-one', text: 'Do not send unchecked notes', revision: 1 }, { id: 'annotation-selected', highlightId: 'highlight-two', text: 'Checked assumption note', revision: 3 }], collections: [], relationships: [], tasks: [], artifacts: [], discoveries: [] };
 }
 
+test('closing a text preview clears it so another source can open', () => {
+  const c = client();
+  c.r.document = { id: 'text-source' };
+  c.r.pages.set(1, { textLayer: { textDivs: [] }, textDocument: true });
+
+  c.context.window.ActiveReading.close();
+
+  assert.equal(c.r.document, null);
+  assert.equal(c.r.pages.size, 0);
+});
+
 test('workspace Find selects a PDF passage across a line break using text-layer offsets', async () => {
   const c = client();
   const hash = '#file/paper.pdf?page=1&start=7&end=19';
