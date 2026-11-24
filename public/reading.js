@@ -912,7 +912,7 @@
     const links = await request(`/backlinks/${encodeURIComponent(page)}`);
     if (!links.length || state.currentPage !== page) return;
     const section = document.createElement('section'); section.className = 'reading-card';
-    section.innerHTML = `<h3>Private reading connections</h3><p class="reading-muted">These links are saved locally and are not part of the wiki page.</p>${links.map(link => `<a class="reading-source-link" href="/#reading/${link.highlight.documentId}/${link.highlight.id}">${e(link.highlight.text.slice(0, 180) || 'Visual selection')} (${e(link.relation)})</a>`).join('')}`;
+    section.innerHTML = `<h3>Private reading connections</h3><p class="reading-muted">These links are saved locally and are not part of the wiki page.</p><div class="md-body"><ul>${links.map(link => `<li><a href="/#reading/${link.highlight.documentId}/${link.highlight.id}">${e(link.highlight.text.slice(0, 180) || 'Visual selection')} (${e(link.relation)})</a></li>`).join('')}</ul></div>`;
     container.append(section);
   }
   async function findNext() {

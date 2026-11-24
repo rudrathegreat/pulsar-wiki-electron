@@ -36,6 +36,20 @@ test('closing a text preview clears it so another source can open', () => {
   assert.equal(c.r.pages.size, 0);
 });
 
+test('private reading connections render passage links with the wiki Markdown styles', async () => {
+  const c = client();
+  populate(c);
+  const [highlight] = c.r.data.highlights;
+  c.context.state.currentPage = 'pulsar-timing';
+  c.context.fetch = async () => ({ ok: true, json: async () => [{ highlight, relation: 'supports' }] });
+  const body = c.document.createElement('div');
+
+  await c.context.window.ActiveReading.backlinks('pulsar-timing', body);
+
+  assert.equal(body.children.length, 1);
+  assert.match(body.children[0].innerHTML, /<div class="md-body"><ul><li><a href="\/#reading\/document-one\/highlight-one">Measured timing result\. \(supports\)<\/a><\/li><\/ul><\/div>/);
+});
+
 test('Markdown sources render by default and retain exact text for source selection', async () => {
   const c = client();
   const body = '# Timing\n\n**Frequency** $f$';

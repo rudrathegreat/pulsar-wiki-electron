@@ -469,4 +469,8 @@ All major updates to the wiki are recorded here.
 
 | 2026-11-24 | Workspace / application | Rendered Markdown and LaTeX in saved source previews, retained the original Markdown view for highlights and search matches, and rebuilt the Windows installer. [Reader implementation](../public/reading.js) [Installer build instructions](../README.md#windows-desktop-app) |
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the Markdown source rendering fix and the Windows installer rebuild.
+| 2026-11-24 | Workspace / application | Applied the standard wiki link styles to private reading connections. [Reading connection rendering](../public/reading.js) [Wiki link styles](../public/style.css) |
+
+| 2026-11-24 | Workspace / application | Rebuilt the Windows x64 installer with the link styling fix for private reading connections. [Installer build instructions](../README.md#windows-desktop-app) |
+
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the Windows installer rebuild for the private reading connection link styling fix.

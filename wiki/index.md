@@ -111,10 +111,11 @@ Ask AI uses the highlight to identify the subject of the question and looks for 
 - [[research-notebooks]]: Embedded JupyterLab for free-form local Python analyses, cited paper and wiki transfers, automatic local history, clean reruns, and on-request recall linked to historical cells.
 - [[project-handover]]: A project handover drafted from complete selected file text using backend instructions, displayed as Markdown for researcher review before publication.
 - [[active-reading]]: PDF reading with highlight helpers, AI responses linked to selected passages, wiki notes, and reference discovery.
+- Private reading connections use the same link styling as other wiki links. The Windows installer includes this fix. [Reading connection rendering](../public/reading.js) [Windows installation and launch](../README.md#windows-desktop-app)
 
 All 41 wiki pages were updated to use the two-sentence declaration format. [[log]]
 
 ---
 *Last updated: 2026-11-24*
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update documented formatted Markdown source previews and how to access highlights and search matches.
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update documented the shared wiki link styling for private reading connections and its inclusion in the rebuilt Windows installer.
