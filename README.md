@@ -1,6 +1,20 @@
 # PulsarWiki
 
-PulsarWiki is a local browser interface for source-backed research workspaces. Open any local folder for a separate project, or continue using the included pulsar astronomy wiki. Its chat uses an eligible ChatGPT subscription, while wiki files and saved conversations remain on the local machine.
+PulsarWiki is a local app for source-backed research workspaces. It runs as a Windows desktop app or in a web browser. Open an existing research workspace, create a new project, or open this repository to use the pulsar astronomy wiki. Its chat uses an eligible ChatGPT subscription, while wiki files and saved conversations remain on the local machine.
+
+## Windows desktop app
+
+Run `PulsarWiki-Setup-<version>-<arch>.exe` and launch **PulsarWiki** from the Start menu or desktop shortcut. The installer includes Electron and the local server. Installed copies use projects you create or open from disk. To use the astronomy wiki in this checkout, create an empty `notebooks` folder in the checkout if it is missing, then select the checkout with **Open project**.
+
+From a Windows checkout with Node.js 22.12 or newer, use PowerShell:
+
+```powershell
+npm.cmd ci
+npm.cmd run desktop
+npm.cmd run build:windows
+```
+
+The build writes the installer under `dist/`. The desktop app stores its NASA ADS token in its per-user profile and opens ChatGPT sign-in in the default browser. Return to PulsarWiki after completing sign-in. Live notebooks still use a separate local Python and JupyterLab environment.
 
 ## Requirements
 
@@ -22,7 +36,7 @@ In PowerShell environments where `npm.ps1` is disabled, use:
     npm.cmd install
     npm.cmd start
 
-Open the displayed loopback address, normally <http://127.0.0.1:3000>. PulsarWiki is intentionally local-only and browser-based; do not expose it through a reverse proxy, LAN address, or the public internet.
+Open the displayed loopback address, normally <http://127.0.0.1:3000>. The server is local-only. Keep it on the loopback interface.
 
 ## Research workspaces
 

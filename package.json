@@ -2,10 +2,12 @@
   "name": "llm-wiki-concept",
   "version": "1.0.0",
   "description": "PulsarWiki — local browser interface for the pulsar astronomy knowledge base",
-  "main": "index.js",
+  "main": "desktop/main.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "desktop": "electron .",
+    "build:windows": "electron-builder --win nsis --publish never",
     "test": "node --test",
     "build:notebooks": "npm --prefix integrations/jupyterlab ci && npm --prefix integrations/jupyterlab run build"
   },
@@ -24,5 +26,32 @@
     "pdfjs-dist": "^5.4.624",
     "ws": "^8.20.0",
     "yazl": "^3.3.1"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "org.pulsarwiki.desktop",
+    "productName": "PulsarWiki",
+    "asar": false,
+    "files": [
+      "desktop/main.js",
+      "server.js",
+      "agent/**/*",
+      "public/**/*",
+      "integrations/jupyter/**/*",
+      "integrations/jupyterlab/extensions/**/*",
+      "favicon.ico",
+      "LICENSE"
+    ],
+    "win": {
+      "icon": "pulsar-wiki-logo.svg",
+      "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "PulsarWiki-Setup-${version}-${arch}.${ext}",
+      "createDesktopShortcut": true
+    }
   }
 }

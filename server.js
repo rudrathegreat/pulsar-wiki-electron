@@ -53,7 +53,8 @@ const CHAT_TIMEOUT_MS = 120000;
 let boundPort = null;
 
 const chatgptAuth = new ChatGPTAuthService();
-const sourceSettings = new SourceSettings({ dataDir: path.join(ROOT_DIR, '.pulsarwiki') });
+let sourceSettings;
+let desktop;
 
 function openWorkspace(folder) {
   if (typeof folder !== 'string' || !folder.trim() || !path.isAbsolute(folder.trim())) throw new Error('Enter an absolute folder path.');
@@ -275,15 +276,16 @@ function asPublicError(error) {
 // Workspace selection is a local, explicit action. Choices live for this server session.
 app.get('/api/workspaces', requireLocalSession, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ active: describe(requestWorkspace(req)), recent: [...workspaces.values()].map(describe).reverse(), defaultPath: ROOT_DIR });
+  res.json({ active: describe(requestWorkspace(req)), recent: [...workspaces.values()].map(describe).reverse(), defaultPath: desktop?.defaultPath ?? ROOT_DIR });
 });
 let folderPickerPending = false;
 app.post('/api/workspaces/pick', requireLocalMutation, async (req, res) => {
   if (folderPickerPending) return res.status(409).json({ error: 'The folder picker is already open. Select a folder or cancel it.' });
   folderPickerPending = true;
   try {
-    const initialPath = typeof req.body?.path === 'string' ? req.body.path : requestWorkspace(req)?.rootDir || ROOT_DIR;
-    res.json({ path: await pickFolder({ initialPath }) });
+    const initialPath = typeof req.body?.path === 'string' ? req.body.path : requestWorkspace(req)?.rootDir || desktop?.defaultPath || ROOT_DIR;
+    const picker = desktop?.pickFolder ?? pickFolder;
+    res.json({ path: await picker({ initialPath }) });
   } catch (error) { res.status(503).json({ error: error.message }); }
   finally { folderPickerPending = false; }
 });
@@ -408,15 +410,27 @@ app.get('/api/chatgpt/status', requireLocalSession, async (_req, res) => {
   }
 });
 
-app.get('/auth/chatgpt/start', requireLocalSession, (req, res) => {
+app.get('/auth/chatgpt/start', requireLocalSession, async (req, res) => {
   try {
     res.setHeader('Cache-Control', 'no-store');
     const authorizationUrl = chatgptAuth.startAuthorization({ port: boundPort });
+    if (desktop) {
+      await desktop.openAuthorization(authorizationUrl);
+      return res.sendStatus(204);
+    }
     res.redirect(302, authorizationUrl);
   } catch (error) {
     res.redirect(302, `/?chatgpt=${encodeURIComponent(asPublicError(error).code)}`);
   }
 });
+
+function finishAuthorization(res, result) {
+  if (!desktop) return res.redirect(302, `/?chatgpt=${result}`);
+  if (result !== 'invalid-state') desktop.onAuthorizationComplete(result);
+  res.type('text/plain').send(result === 'connected'
+    ? 'ChatGPT is connected. Return to PulsarWiki to continue.'
+    : 'Sign-in could not be completed. Return to PulsarWiki to continue.');
+}
 
 app.get('/auth/chatgpt/callback', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -424,11 +438,11 @@ app.get('/auth/chatgpt/callback', async (req, res) => {
     const status = await chatgptAuth.handleCallback(req.query);
     const result = status.planEnabled ? 'connected' : 'plan-permission-required';
     if (status.planEnabled) resumePendingIngestJobs();
-    res.redirect(302, `/?chatgpt=${result}`);
+    finishAuthorization(res, result);
   } catch (error) {
     const code = asPublicError(error).code;
     const safeCode = ['access-denied', 'authorization-expired', 'invalid-state', 'account-mismatch'].includes(code) ? code : 'connection-failed';
-    res.redirect(302, `/?chatgpt=${safeCode}`);
+    finishAuthorization(res, safeCode);
   }
 });
 
@@ -893,23 +907,40 @@ server.on('upgrade', (request, socket, head) => {
   return wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws, request));
 });
 
-const PORT = Number(process.env.PORT || 3000);
 const HOST = '127.0.0.1';
-server.listen(PORT, HOST, () => {
-  const address = server.address();
-  boundPort = typeof address === 'object' && address ? address.port : PORT;
-  console.log(`\nPulsarWiki -> http://${HOST}:${boundPort}\n`);
-});
+
+async function startServer({ port = Number(process.env.PORT || 3000), desktopOptions } = {}) {
+  desktop = desktopOptions;
+  sourceSettings = new SourceSettings({ dataDir: desktop?.dataDir ?? path.join(ROOT_DIR, '.pulsarwiki') });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, HOST, () => {
+      server.off('error', reject);
+      boundPort = server.address().port;
+      resolve();
+    });
+  });
+  return `http://${HOST}:${boundPort}`;
+}
 
 async function shutdown() {
+  const closing = new Promise(resolve => server.close(resolve));
+  for (const client of wss.clients) client.terminate();
   for (const workspace of workspaces.values()) workspace.readingService.close();
   await Promise.all([...workspaces.values()].map(workspace => workspace.notebookService.close()));
   await Promise.all([...workspaces.values()].map(workspace => workspace.watcher.close()));
-  for (const client of wss.clients) client.close();
-  await new Promise(resolve => server.close(resolve));
+  server.closeAllConnections();
+  await closing;
 }
 
-process.once('SIGINT', () => { shutdown().finally(() => process.exit(0)); });
-process.once('SIGTERM', () => { shutdown().finally(() => process.exit(0)); });
+function runServer(options) {
+  process.once('SIGINT', () => { shutdown().finally(() => process.exit(0)); });
+  process.once('SIGTERM', () => { shutdown().finally(() => process.exit(0)); });
+  return startServer(options).then(url => console.log(`\nPulsarWiki -> ${url}\n`));
+}
 
-module.exports = { isAllowedLoopbackOrigin, parseCookies, sessionMatches, asPublicError };
+if (require.main === module) {
+  runServer().catch(error => { console.error(error); process.exitCode = 1; });
+}
+
+module.exports = { startServer, shutdown, runServer, isAllowedLoopbackOrigin, parseCookies, sessionMatches, asPublicError };

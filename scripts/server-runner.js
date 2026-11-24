@@ -1,4 +1,6 @@
 'use strict';
 
-process.env.PORT = process.argv[2] || '0';
-require('../server');
+require('../server').runServer({ port: Number(process.argv[2] || 0) }).catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

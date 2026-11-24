@@ -461,4 +461,6 @@ All major updates to the wiki are recorded here.
 
 | 2026-11-24 | Workspace / application | Removed the manual Refresh button and project folder name from the sticky Project Files header. [Project files panel](../public/index.html) |
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the simplified Project Files header.
+| 2026-11-24 | Workspace / application | Added a Windows desktop window, native project folder selection, and an installer build. [Desktop entry point](../desktop/main.js) [Windows installation and launch](../README.md#windows-desktop-app) |
+
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the addition of the Windows desktop app and installer build.
