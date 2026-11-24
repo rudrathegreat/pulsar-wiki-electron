@@ -1,0 +1,288 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+const vm = require('node:vm');
+const katex = require('katex');
+const marked = require('marked');
+
+const appSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
+const indexSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+const styleSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'style.css'), 'utf8');
+const readingSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'reading.js'), 'utf8');
+const readingStyle = fs.readFileSync(path.join(__dirname, '..', 'public', 'reading.css'), 'utf8');
+const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+
+function loadApi(fetch) {
+  const apiSource = appSource.slice(0, appSource.indexOf('const state ='));
+  const context = {
+    fetch,
+    URLSearchParams,
+    XMLHttpRequest: class {},
+    marked: { setOptions() {}, parse() { return ''; } },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${apiSource}\nglobalThis.__api = api;`, context);
+  return context.__api;
+}
+
+function response(status, payload = {}) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async text() { return status === 204 ? '' : JSON.stringify(payload); },
+  };
+}
+
+test('related requests send encoded citation identifiers so expired cards can recover', async () => {
+  let requested;
+  const api = loadApi(async url => { requested = new URL(url, 'http://localhost'); return response(200, { groups: [] }); });
+  await api.getRelatedSources('paper-id', { provider: 'NASA ADS', bibcode: '2024A&A...123..456A', doi: '10.1234/a+b', arxivId: '2401.01234', pdfUrl: 'https://example.com/private' });
+  assert.equal(requested.pathname, '/api/sources/paper-id/related');
+  assert.equal(requested.searchParams.get('bibcode'), '2024A&A...123..456A');
+  assert.equal(requested.searchParams.get('doi'), '10.1234/a+b');
+  assert.equal(requested.searchParams.get('provider'), 'NASA ADS');
+  assert.equal(requested.searchParams.has('pdfUrl'), false);
+});
+
+function loadClientHelpers() {
+  const helperSource = appSource.slice(0, appSource.indexOf('const state ='));
+  const context = {
+    fetch: async () => response(200),
+    XMLHttpRequest: class {},
+    marked,
+    escHtml(value) {
+      return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${helperSource}\nglobalThis.__helpers = { stripEmoji, normalizeWikiPageName, wikiPath, wikiPageFromPath, preprocessMd, renderMd, renderWikiPageMd, typesetMath, wikiLinkForInAppNavigation };`, context);
+  return context.__helpers;
+}
+
+test('frontend reads sanitized ChatGPT status and persists a catalog model slug', async () => {
+  const requests = [];
+  const api = loadApi(async (url, options = {}) => {
+    requests.push({ url, options });
+    if (url === '/api/chatgpt/status') return response(200, {
+      connected: true,
+      savedAccount: true,
+      ready: true,
+      account: { name: 'Pulsar Person', email: 'person@example.com' },
+      models: [{ id: 'model-slug', name: 'Model Name' }],
+      selectedModel: 'model-slug',
+    });
+    if (url === '/api/chatgpt/model') return response(200, { ready: true, selectedModel: 'model-slug' });
+    throw new Error('unexpected request');
+  });
+
+  assert.equal((await api.getChatGPTStatus()).selectedModel, 'model-slug');
+  assert.equal((await api.saveChatGPTModel('model-slug')).ready, true);
+  assert.equal(requests[1].options.method, 'PUT');
+  assert.deepEqual(JSON.parse(requests[1].options.body), { model: 'model-slug' });
+  assert.equal(requests[1].options.body.includes('token'), false);
+});
+
+test('frontend disconnect and forget requests use their dedicated account routes', async () => {
+  const requests = [];
+  const api = loadApi(async (url, options = {}) => {
+    requests.push({ url, options });
+    return response(200, { connected: false, savedAccount: url.endsWith('/session') });
+  });
+
+  assert.equal((await api.disconnectChatGPT()).savedAccount, true);
+  assert.equal((await api.forgetChatGPTAccount()).savedAccount, false);
+  assert.deepEqual(requests.map(request => [request.url, request.options.method]), [
+    ['/api/chatgpt/session', 'DELETE'],
+    ['/api/chatgpt/account', 'DELETE'],
+  ]);
+});
+
+test('handover generation and reviewed publishing use dedicated APIs', async () => {
+  const requests = [];
+  const api = loadApi(async (url, options = {}) => {
+    requests.push({ url, options });
+    if (url.endsWith('/generate')) return response(200, { draft: '# Project Handover' });
+    return response(200, { ok: true, page: 'project-handover' });
+  });
+
+  const selection = { projectName: 'Timing study', pages: ['pulsar-timing'], sources: ['paper.pdf'] };
+  assert.match((await api.generateHandover(selection)).draft, /Project Handover/);
+  assert.equal((await api.publishHandover('# Project Handover')).page, 'project-handover');
+  assert.deepEqual(requests.map(request => [request.url, request.options.method]), [
+    ['/api/handover/generate', 'POST'],
+    ['/api/handover/publish', 'POST'],
+  ]);
+  assert.deepEqual(JSON.parse(requests[0].options.body), selection);
+  assert.deepEqual(JSON.parse(requests[1].options.body), { content: '# Project Handover', reviewed: true });
+});
+
+test('frontend surfaces safe server failures', async () => {
+  const api = loadApi(async () => response(403, { error: 'Reconnect ChatGPT and approve subscription use.' }));
+  await assert.rejects(api.getChatGPTStatus(), /Reconnect ChatGPT/);
+});
+
+test('subscription UI covers connect, reconnect, selection, disconnect, and replacement states', () => {
+  for (const id of [
+    'chatgpt-settings-modal', 'chatgpt-connect', 'chatgpt-new-account', 'chatgpt-model',
+    'chatgpt-model-save', 'chatgpt-disconnect', 'chatgpt-forget',
+  ]) {
+    assert.match(indexSource, new RegExp(`id="${id}"`));
+  }
+  assert.match(appSource, /Continue with ChatGPT/);
+  assert.match(appSource, /Reconnect ChatGPT/);
+  assert.match(appSource, /Use another account/);
+  assert.match(appSource, /plan permission is missing/i);
+  assert.match(appSource, /sign-in request expired/i);
+  assert.match(appSource, /sign-in was declined/i);
+  assert.doesNotMatch(indexSource, /API key|agent-provider|agent-model/);
+  assert.doesNotMatch(appSource, /getAgentSettings|saveAgentSettings|FALLBACK_PROVIDERS/);
+});
+
+test('wiki page names produce canonical direct routes and legacy names normalize safely', () => {
+  const helpers = loadClientHelpers();
+  assert.equal(helpers.normalizeWikiPageName(' Pulsar Timing '), 'pulsar-timing');
+  assert.equal(helpers.normalizeWikiPageName('Pulsar 🔭'), 'pulsar');
+  assert.equal(helpers.wikiPath('Pulsar Timing'), '/wiki/pulsar-timing');
+  assert.equal(helpers.wikiPageFromPath('/wiki/Pulsar%20Timing'), 'pulsar-timing');
+  assert.equal(helpers.wikiPageFromPath('/wiki/pulsar/extra'), null);
+});
+
+test('a plain app launch opens the wiki index after explicit routes are considered', () => {
+  const bootstrap = appSource.slice(appSource.indexOf('(async function init()'));
+  const explicitRoute = bootstrap.indexOf('await handleAppRoute()');
+  const defaultRoute = bootstrap.indexOf("openPage('index', { historyMode: 'replace' })");
+  assert.ok(explicitRoute !== -1 && explicitRoute < defaultRoute);
+});
+
+test('emoji sanitizer removes emojis from plain text and Markdown before rendering', () => {
+  const helpers = loadClientHelpers();
+  assert.equal(helpers.stripEmoji('Pulsar 🔭 timing'), 'Pulsar timing');
+  assert.equal(helpers.preprocessMd('[[Pulsar 🔭|Pulsar 🔭]]'), '[Pulsar](/wiki/pulsar)');
+});
+
+test('chat wiki links render canonical routes and only plain primary clicks navigate in-app', () => {
+  const helpers = loadClientHelpers();
+  const html = helpers.renderMd('Here\u2019s the wiki page: [[psr-j0437-4715|PSR J0437\u22124715]].');
+  assert.match(html, /href="\/wiki\/psr-j0437-4715"/);
+  assert.match(html, /class="wiki-link"/);
+  assert.match(html, /data-page="psr-j0437-4715"/);
+  for (const input of ['[[psr-j0740+6620]]', '`[[psr-j0740+6620]]`', '[psr-j0740+6620](WIKILINK:psr-j0740+6620)', '`[psr-j0740+6620](/wiki/psr-j0740%2B6620)`', '[PSR J0740](/wiki/psr-j0740%2B6620)']) {
+    const rendered = helpers.renderMd(input);
+    assert.match(rendered, /href="\/wiki\/psr-j0740%2B6620"/);
+    assert.match(rendered, /class="wiki-link" data-page="psr-j0740\+6620"/);
+    assert.doesNotMatch(rendered, /WIKILINK:/);
+    assert.doesNotMatch(rendered, /<code>/);
+  }
+  assert.match(helpers.renderMd('`ordinary code`'), /<code>ordinary code<\/code>/);
+
+  const wikiLink = { dataset: { page: 'psr-j0437-4715' } };
+  const plainClick = {
+    defaultPrevented: false,
+    button: 0,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    target: { closest: selector => selector === 'a.wiki-link[data-page]' ? wikiLink : null },
+  };
+  assert.equal(helpers.wikiLinkForInAppNavigation(plainClick), wikiLink);
+  assert.equal(helpers.wikiLinkForInAppNavigation({ ...plainClick, ctrlKey: true }), null);
+  assert.equal(helpers.wikiLinkForInAppNavigation({ ...plainClick, button: 1 }), null);
+  assert.equal(helpers.wikiLinkForInAppNavigation({ ...plainClick, target: { closest: () => null } }), null);
+
+  assert.match(appSource, /handleAiChunk[\s\S]*renderMd\(aiTarget\.buffer\)/);
+  assert.match(appSource, /appendChatMsg[\s\S]*renderMd\(text\)/);
+  assert.match(appSource, /dom\.chatMessages\.addEventListener\('click', handleChatWikiLink\)/);
+});
+
+test('LaTeX delimiters survive Markdown rendering and KaTeX assets are local', () => {
+  const helpers = loadClientHelpers();
+  const html = helpers.renderMd('Display: \\[ \\Delta t = x_1^2 \\] and inline $f^{-2}$. `code $x$`');
+  assert.match(html, /\\\[ \\Delta t = x_1\^2 \\\]/);
+  assert.match(html, /\$f\^\{-2\}\$/);
+  assert.match(html, /<code>code \$x\$<\/code>/);
+  assert.match(indexSource, /href="\/vendor\/katex\/katex\.min\.css"/);
+  assert.match(indexSource, /src="\/vendor\/katex\/katex\.min\.js"/);
+  assert.match(indexSource, /src="\/vendor\/katex\/contrib\/auto-render\.min\.js"/);
+  assert.match(serverSource, /app\.use\('\/vendor\/katex'/);
+  assert.match(appSource, /typesetMath\(dom\.wikiBody\)/);
+  assert.match(appSource, /typesetMath\(dom\.documentStage\)/);
+  assert.match(appSource, /typesetMath\(aiTarget\.el\)/);
+  assert.doesNotThrow(() => katex.renderToString('\\Delta t = x_1^2 + f^{-2}', { throwOnError: true }));
+});
+
+test('Markdown tables render in a scrollable container with column alignment', () => {
+  const helpers = loadClientHelpers();
+  const html = helpers.renderMd('| Object | Period |\n| :--- | ---: |\n| [[pulsar]] | $1$ ms |');
+  assert.match(html, /<div class="md-table-wrap"><table>/);
+  assert.match(html, /<th align="right">Period<\/th>/);
+  assert.match(html, /<td align="right">\$1\$ ms<\/td>/);
+  assert.match(html, /class="wiki-link"/);
+  assert.match(html, /<\/table><\/div>/);
+  assert.match(styleSource, /\.md-body \.md-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
+});
+
+test('the append-only wiki log renders separated rows and dated entries as one table', () => {
+  const helpers = loadClientHelpers();
+  const log = fs.readFileSync(path.join(__dirname, '..', 'wiki', 'log.md'), 'utf8');
+  const html = helpers.renderWikiPageMd('log', log);
+  const entries = log.split(/\r?\n/).filter(line => /^(?:`n)?\| \d{4}-\d{2}-\d{2} \|/.test(line) || /^- \d{4}-\d{2}-\d{2}:/.test(line));
+  assert.equal((html.match(/<table>/g) || []).length, 1);
+  assert.equal((html.match(/<tr>/g) || []).length - 1, entries.length);
+  assert.match(html, /Created pulsar-glitches page/);
+  assert.match(html, /Improved Markdown table display/);
+  assert.match(helpers.renderWikiPageMd('other', '| A | B |\n| - | - |\n| x | y |\n\n| z | q |'), /<p>\| z \| q \|<\/p>/);
+});
+
+test('UI source uses only approved palettes and contains no built-in emojis', () => {
+  const allowed = new Set(['#111', '#1c1c1c', '#222', '#fff', '#eee', '#ccc', '#ef5350']);
+  const colorSources = `${styleSource}\n${appSource}\n${readingSource}`;
+  for (const color of colorSources.match(/#[0-9a-f]{3,8}\b/gi) || []) {
+    assert.ok(allowed.has(color.toLowerCase()), `Unexpected color literal: ${color}`);
+  }
+  assert.doesNotMatch(colorSources, /rgba\(/i);
+  assert.doesNotMatch(`${indexSource}\n${appSource}\n${readingSource}\n${serverSource}`, /\p{Extended_Pictographic}/u);
+  const annotationColors = new Set([...allowed, '#f4d35e', '#8dd3a8', '#8ec5ff', '#efa8ca']);
+  for (const color of readingStyle.match(/#[0-9a-f]{3,8}\b/gi) || []) assert.ok(annotationColors.has(color.toLowerCase()), `Unexpected annotation color: ${color}`);
+  for (const token of ['yellow', 'green', 'blue', 'pink', 'ai']) assert.match(readingStyle, new RegExp(`--highlight-${token}:`));
+  assert.match(indexSource, /href="\/style\.css"/);
+  assert.match(indexSource, /src="\/app\.js"/);
+});
+
+test('sidebar owns page and source upload controls, with ChatGPT settings in the icon bar', () => {
+  assert.match(indexSource, /class="sidebar-actions"/);
+  assert.match(indexSource, /New Page/);
+  assert.match(indexSource, /Upload Sources/);
+  assert.match(indexSource, /id="chatgpt-settings-button"/);
+  assert.match(indexSource, /class="icon-btn chatgpt-settings-icon"/);
+  assert.doesNotMatch(indexSource, /id="topbar"/);
+  assert.match(styleSource, /#iconbar\s*\{[\s\S]*background: var\(--surface\)/);
+  assert.match(styleSource, /#sidebar\s*\{[\s\S]*background: var\(--surface\)/);
+});
+
+test('chat switches the existing sidebar instead of rendering a third chat sidebar', () => {
+  assert.match(indexSource, /id="sidebar-chat" class="chat-sidebar sidebar-pane"/);
+  const chatPanel = indexSource.split('<!-- Chat panel -->')[1].split('<!-- Graph panel -->')[0];
+  assert.doesNotMatch(chatPanel, /<aside class="chat-sidebar"/);
+  assert.match(appSource, /classList\.toggle\('chat-mode', name === 'chat'\)/);
+  assert.match(styleSource, /#sidebar\.chat-mode #sidebar-chat\s*\{\s*display: flex/);
+  assert.doesNotMatch(styleSource, /\.chat-sidebar\s*\{[^}]*max-height:\s*132px/s);
+});
+
+test('project handover is a selection-based, review-gated wiki workflow', () => {
+  for (const id of [
+    'ib-handover', 'panel-handover', 'handover-wiki-options', 'handover-file-options',
+    'handover-editor', 'handover-preview', 'handover-reviewed', 'handover-publish',
+  ]) assert.match(indexSource, new RegExp(`id="${id}"`));
+  assert.match(indexSource, /I have reviewed this handover/);
+  assert.match(indexSource, /<label for="handover-file-input">Sources<\/label>/);
+  assert.match(appSource, /if \(!state\.chatgpt\?\.ready\)/);
+  assert.match(appSource, /handover-reviewed'[\s\S]*handover-publish/);
+  assert.match(serverSource, /app\.post\('\/api\/handover\/generate', requireLocalMutation/);
+  assert.match(serverSource, /handoverService\.generate\(req\.body \|\| \{\}\)/);
+  assert.match(serverSource, /req\.body\?\.reviewed !== true/);
+  assert.match(serverSource, /wikiTools\.applyWikiChanges\([\s\S]*name: 'project-handover'[\s\S]*name: 'index'/);
+});

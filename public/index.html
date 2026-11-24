@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PulsarWiki</title>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
+  <meta name="description" content="A visual interface for the PulsarWiki knowledge base — browse, search, chat and explore the pulsar astronomy graph."/>
+  <link rel="stylesheet" href="/style.css"/>
+  <link rel="stylesheet" href="/reading.css"/>
+  <link rel="stylesheet" href="/notebooks.css"/>
+  <link rel="stylesheet" href="/vendor/katex/katex.min.css"/>
+</head>
+<body class="workspace-loading">
+<div id="workspace-loading" role="status" aria-live="polite">
+  <span class="workspace-spinner" aria-hidden="true"></span>
+  <p>Opening project&hellip;</p>
+</div>
+<section id="workspace-welcome" aria-labelledby="workspace-welcome-title">
+  <div class="welcome-titlebar">PulsarWiki <span>Research workspaces</span></div>
+  <main class="welcome-content">
+    <div class="welcome-brand" aria-hidden="true"><img src="/pulsar-wiki-logo.svg" alt=""/></div>
+    <h1 id="workspace-welcome-title">PulsarWiki</h1>
+    <p class="welcome-tagline">A place for every research project.</p>
+    <div class="welcome-columns">
+      <section aria-labelledby="welcome-start-title">
+        <h2 id="welcome-start-title">Start</h2>
+        <div class="welcome-actions">
+          <button id="workspace-new" type="button" class="btn" aria-expanded="false" aria-controls="workspace-create-form">New project</button>
+          <button id="workspace-open" type="button" class="btn">Open project</button>
+        </div>
+        <form id="workspace-create-form" hidden>
+          <label for="workspace-create-name">Project name</label>
+          <input id="workspace-create-name" name="name" type="text" maxlength="120" required autocomplete="off" placeholder="My research project"/>
+          <label for="workspace-create-parent">Create inside</label>
+          <div class="welcome-actions">
+            <input id="workspace-create-parent" name="parentPath" type="text" required autocomplete="off" placeholder="Full path to parent folder" aria-describedby="workspace-create-help"/>
+            <button id="workspace-create-browse" type="button" class="btn">Browse</button>
+          </div>
+          <p id="workspace-create-help" class="welcome-help">A new subfolder with your project name will be created here.</p>
+          <div class="welcome-actions">
+            <button id="workspace-create-submit" type="submit" class="btn">Create project</button>
+            <button id="workspace-create-cancel" type="button" class="btn">Cancel</button>
+          </div>
+        </form>
+      </section>
+      <section aria-labelledby="welcome-recent-title">
+        <h2 id="welcome-recent-title">Recent</h2>
+        <div id="workspace-recents"><p class="welcome-help">Your opened folders will appear here.</p></div>
+      </section>
+    </div>
+    <p id="workspace-error" role="alert"></p>
+  </main>
+</section>
+<p id="workspace-status" role="status" hidden></p>
+<div id="app">
+
+  <!-- Icon bar -->
+  <nav id="iconbar">
+    <img class="iconbar-logo" src="/pulsar-wiki-logo.svg" alt="PulsarWiki" width="26" height="38"/>
+    <button class="icon-btn" id="workspace-explorer-toggle" data-panel="explorer" data-tooltip="Browse project files" aria-label="Project files" aria-controls="panel-explorer" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg></button>
+    <button class="icon-btn active" id="ib-wiki" data-tooltip="Browse wiki pages" aria-label="Wiki" data-panel="wiki">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </button>
+    <button class="icon-btn" id="ib-chat" data-tooltip="Open saved chats and ask questions" aria-label="Chat" data-panel="chat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <button class="icon-btn" id="ib-graph" data-tooltip="Explore connections between wiki pages" aria-label="Graph" data-panel="graph">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="12" cy="12" r="2"/><line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="17.2" y2="6.8"/><line x1="14.2" y1="12.8" x2="17.2" y2="17.5"/></svg>
+    </button>
+    <button class="icon-btn" id="ib-files" data-tooltip="Browse saved sources" aria-label="Source Files" data-panel="files">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+    </button>
+    <button class="icon-btn" id="ib-notebooks" data-tooltip="Open research notebooks" aria-label="Research notebooks" data-panel="notebooks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="15" height="18" rx="2"/><path d="M3 7h4M3 12h4M3 17h4M11 8l-2 3 2 3M15 8l2 3-2 3"/></svg></button>
+    <button class="icon-btn" id="ib-handover" data-tooltip="Open project handover" aria-label="Project Handover" data-panel="handover">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4V2h6v2M8 9h8M8 13h5M15 16l2 2 3-4"/></svg>
+    </button>
+    <button class="icon-btn chatgpt-settings-icon" id="chatgpt-settings-button" data-panel="settings" type="button" data-tooltip="Open settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2 2-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2-2 .06-.06A1.65 1.65 0 0 0 7.4 15a1.65 1.65 0 0 0-1.51-1H5.8v-3h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06 2-2 .06.06A1.65 1.65 0 0 0 10.89 6.5h.01A1.65 1.65 0 0 0 12 5V4.8h3V5a1.65 1.65 0 0 0 1 1.5 1.65 1.65 0 0 0 1.82-.33l.06-.06 2 2-.06.06A1.65 1.65 0 0 0 19.5 10v.01A1.65 1.65 0 0 0 21 11h.2v3H21a1.65 1.65 0 0 0-1.6 1z"/></svg>
+      <span class="dot-online" id="ws-dot"></span>
+      <span class="sr-only" id="chatgpt-settings-label">Connect ChatGPT</span>
+    </button>
+    <div class="icon-spacer"></div>
+    <button class="icon-btn" id="ib-theme" data-tooltip="Toggle light or dark theme" aria-label="Toggle theme">
+      <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div id="sidebar-wiki" class="sidebar-pane">
+      <div class="sidebar-header">
+      <div class="sidebar-title">PulsarWiki</div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search-input" type="text" placeholder="Search wiki…" autocomplete="off" aria-label="Search wiki" aria-controls="sidebar-body" aria-describedby="wiki-search-status"/>
+      </div>
+      <div class="sidebar-actions" aria-label="Wiki actions">
+        <button class="sidebar-action" id="btn-new-page" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Page
+        </button>
+        <button class="sidebar-action" id="btn-add-sources" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add sources
+        </button>
+      </div>
+      </div>
+      <div id="wiki-search-status" class="wiki-search-status" role="status" aria-live="polite"></div>
+      <div class="sidebar-body" id="sidebar-body">
+        <!-- Populated by JS -->
+      </div>
+      <div class="sidebar-reference">
+        <button class="nav-item" id="wiki-sidebar-references" type="button" aria-label="Open references.bib">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          references.bib
+        </button>
+      </div>
+    </div>
+    <section id="sidebar-sources" class="sidebar-pane" aria-label="Saved sources">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Sources</div>
+        <button class="sidebar-action" id="source-sidebar-add" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add sources
+        </button>
+      </div>
+      <div class="nav-section-title">Saved sources <span id="source-sidebar-count">0</span></div>
+      <p id="source-sidebar-status" role="status" aria-live="polite"></p>
+      <div id="source-sidebar-list" class="sidebar-body"></div>
+      <div class="sidebar-reference">
+        <button class="nav-item" id="source-sidebar-references" type="button" aria-label="Open references.bib">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          references.bib
+        </button>
+      </div>
+    </section>
+    <aside id="sidebar-chat" class="chat-sidebar sidebar-pane" aria-label="Saved chats">
+      <div class="chat-sidebar-header">
+        <div class="sidebar-title">PulsarWiki</div>
+        <div class="chat-sidebar-actions">
+          <span class="chat-sidebar-label">Saved chats</span>
+          <button class="sidebar-action chat-new-thread" id="chat-new-thread" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New chat
+          </button>
+        </div>
+      </div>
+      <div class="chat-thread-list" id="chat-thread-list"></div>
+    </aside>
+  </aside>
+
+  <!-- Main -->
+  <div id="main">
+    <header class="workspace-titlebar">
+      <nav id="workspace-menus" aria-label="Workspace menus">
+        <details name="workspace-menu">
+          <summary>File</summary>
+          <div class="workspace-menu-list">
+            <button id="workspace-new-wiki" type="button">New wiki file</button>
+            <button id="workspace-new-chat" type="button">New chat</button>
+            <button id="workspace-add-source" type="button">Add source</button>
+            <button id="workspace-upload-source" type="button">Upload source</button>
+            <hr/>
+            <button type="button" data-workspace-open="wiki">Open wiki file</button>
+            <button type="button" data-workspace-open="chat">Open chat</button>
+            <button type="button" data-workspace-open="source">Open source</button>
+            <hr/>
+            <button id="workspace-new-project" type="button">New project</button>
+            <button id="workspace-change" type="button">Open project</button>
+            <a id="workspace-export" href="/api/workspaces/export" download>Export project</a>
+            <button id="workspace-close" type="button">Close folder</button>
+          </div>
+        </details>
+        <details id="workspace-edit-menu" name="workspace-menu">
+          <summary>Edit</summary>
+          <div class="workspace-menu-list">
+            <button type="button" data-edit-command="undo" aria-keyshortcuts="Control+Z">Undo <kbd aria-hidden="true">Ctrl+Z</kbd></button>
+            <button type="button" data-edit-command="redo" aria-keyshortcuts="Control+Y">Redo <kbd aria-hidden="true">Ctrl+Y</kbd></button>
+            <hr/>
+            <button type="button" data-edit-command="cut" aria-keyshortcuts="Control+X">Cut <kbd aria-hidden="true">Ctrl+X</kbd></button>
+            <button type="button" data-edit-command="copy" aria-keyshortcuts="Control+C">Copy <kbd aria-hidden="true">Ctrl+C</kbd></button>
+            <button type="button" data-edit-command="paste" aria-keyshortcuts="Control+V">Paste <kbd aria-hidden="true">Ctrl+V</kbd></button>
+            <hr/>
+            <button type="button" data-edit-command="find" aria-keyshortcuts="Control+F">Find <kbd aria-hidden="true">Ctrl+F</kbd></button>
+            <button type="button" data-edit-command="replace" aria-keyshortcuts="Control+H">Replace <kbd aria-hidden="true">Ctrl+H</kbd></button>
+            <hr/>
+            <button id="workspace-edit-page" type="button" disabled>Edit wiki page</button>
+          </div>
+        </details>
+        <details name="workspace-menu">
+          <summary>Selection</summary>
+          <div class="workspace-menu-list">
+            <button id="workspace-select-text" type="button">Select all page text</button>
+            <button id="workspace-clear-selection" type="button">Clear selection</button>
+          </div>
+        </details>
+        <details name="workspace-menu">
+          <summary>Go</summary>
+          <div class="workspace-menu-list">
+            <button type="button" data-workspace-panel="wiki">Wiki</button>
+            <button type="button" data-workspace-panel="chat">Chat</button>
+            <button type="button" data-workspace-panel="graph">Graph</button>
+            <button type="button" data-workspace-panel="files">Sources</button>
+            <button type="button" data-workspace-panel="notebooks">Research notebooks</button>
+            <button type="button" data-workspace-panel="handover">Project handover</button>
+            <button type="button" data-workspace-panel="settings">Settings</button>
+          </div>
+        </details>
+        <details name="workspace-menu">
+          <summary>Help</summary>
+          <div class="workspace-menu-list">
+            <a class="wiki-link" data-page="index" href="/wiki/index">Wiki index</a>
+            <a class="wiki-link" data-page="log" href="/wiki/log">Change log</a>
+            <a class="wiki-link" data-page="project-handover" href="/wiki/project-handover">Project Handover</a>
+            <button type="button" disabled>PulsarWiki Docs</button>
+          </div>
+        </details>
+      </nav>
+      <span id="workspace-current-path"></span>
+      <form id="workspace-find" class="workspace-find" role="search" aria-label="Find and replace" hidden>
+        <div class="workspace-find-row">
+          <input id="workspace-find-query" type="search" placeholder="Search workspace documents" aria-label="Search workspace documents" aria-controls="workspace-find-results" list="workspace-find-suggestions" autocomplete="off"/>
+          <datalist id="workspace-find-suggestions"></datalist>
+          <button class="btn" id="workspace-find-submit" type="submit" hidden>Find next</button>
+          <button class="btn" id="workspace-find-close" type="button" aria-label="Close find">Close</button>
+        </div>
+        <div class="workspace-find-row" id="workspace-replace-row" hidden>
+          <input id="workspace-replacement" type="text" placeholder="Replace with" aria-label="Replace with" autocomplete="off"/>
+          <button class="btn" id="workspace-replace-current" type="button">Replace</button>
+        </div>
+        <p id="workspace-find-status" role="status"></p>
+        <ul id="workspace-find-results" aria-label="Matching documents" hidden></ul>
+      </form>
+      <p id="workspace-edit-status" class="workspace-find" role="status" hidden></p>
+    </header>
+    <!-- Content area -->
+    <div id="content">
+
+      <section class="panel" id="panel-explorer" aria-labelledby="workspace-explorer-title">
+        <header class="explorer-header">
+          <h2 id="workspace-explorer-title">Project files</h2>
+        </header>
+        <div class="explorer-scroll">
+          <ul id="workspace-explorer-entries" class="explorer-list" aria-label="Project files"></ul>
+        </div>
+      </section>
+
+      <!-- Wiki panel -->
+      <div class="panel active" id="panel-wiki">
+        <div class="wiki-page">
+          <div class="wiki-breadcrumb" id="wiki-breadcrumb">
+            <a onclick="app.showPanel('wiki')">Wiki</a>
+          </div>
+          <div id="wiki-body">
+            <div class="wiki-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <h3>Select a page from the sidebar</h3>
+              <p style="font-size:13px;color:var(--text-3)">Or use the search bar to find content</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat panel -->
+      <div class="panel" id="panel-chat">
+        <div class="chat-layout">
+          <section class="chat-conversation">
+        <div id="chat-messages">
+          <div class="chat-msg ai">
+            <div class="chat-avatar">AI</div>
+            <div class="chat-bubble">
+              <strong>Connect your ChatGPT subscription to get started.</strong><br>
+              Ask about your research or build on the sources and notes in this workspace.
+            </div>
+          </div>
+        </div>
+        <div id="chat-bar">
+          <div class="chat-bar-inner">
+            <textarea id="chat-input" rows="1" placeholder="Ask about your research…"></textarea>
+            <button id="chat-abort" title="Stop">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button id="chat-send" title="Send (Enter)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+          <div class="chat-status" id="chat-status">Press Enter to send · Shift+Enter for new line</div>
+        </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Graph panel -->
+      <div class="panel" id="panel-graph">
+        <svg id="graph-canvas" role="img" aria-label="Interactive PulsarWiki relationship graph"></svg>
+        <div class="graph-status" id="graph-status" role="status" aria-live="polite"></div>
+        <div class="graph-legend" id="graph-legend"></div>
+        <div class="graph-tooltip" id="graph-tooltip"></div>
+        <div class="graph-controls">
+          <button class="graph-btn" id="graph-zoom-in" title="Zoom in">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="graph-btn" id="graph-zoom-out" title="Zoom out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="graph-btn" id="graph-reset" title="Reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Files panel -->
+      <div class="panel" id="panel-files">
+        <div class="sources-shell">
+          <header class="sources-header">
+            <div>
+              <h2>Sources</h2>
+            </div>
+            <div class="source-job-status" id="source-job-status" role="status" aria-live="polite"></div>
+          </header>
+
+          <div class="source-tabs" role="tablist" aria-label="Source views">
+            <button class="source-tab active" id="source-tab-add" type="button" role="tab" aria-selected="true" aria-controls="source-view-add" data-source-view="add">Search online</button>
+            <button class="source-tab" id="source-tab-upload" type="button" role="tab" aria-selected="false" aria-controls="source-view-upload" data-source-view="upload">Upload a file</button>
+            <button class="source-tab" id="source-tab-saved" type="button" role="tab" aria-selected="false" aria-controls="source-view-saved" data-source-view="saved">Saved sources <span class="badge" id="files-count">0</span></button>
+            <button class="source-tab" id="source-tab-references" type="button" role="tab" aria-selected="false" aria-controls="source-view-references" data-source-view="references">References</button>
+          </div>
+
+          <section class="source-view active" id="source-view-add" role="tabpanel" aria-labelledby="source-tab-add">
+            <div id="source-search-page">
+            <div class="source-intro">
+              <h3>Find the research you need</h3>
+              <p>Ask a research question, enter keywords, or paste a paper title, DOI, arXiv ID, or ADS link. Searches use arXiv and NASA ADS.</p>
+            </div>
+
+            <form class="source-search-form" id="source-search-form">
+              <div class="source-search-box" id="source-search-box">
+                <input id="source-search-input" type="text" autocomplete="off" spellcheck="false" aria-autocomplete="list" aria-controls="source-filter-suggestions" placeholder="Ask a question or enter a title, DOI, arXiv ID, or ADS link"/>
+                <div class="source-filter-suggestions" id="source-filter-suggestions" role="listbox"></div>
+              </div>
+              <button class="source-search-submit" id="source-search-submit" type="submit">Search</button>
+              <div class="source-search-help">
+                <span>Refine in the search bar:</span>
+                <button type="button" data-filter-example="author:&quot;&quot;">author:</button>
+                <button type="button" data-filter-example="year:">year:</button>
+                <button type="button" data-filter-example="object:&quot;&quot;">object:</button>
+                <button type="button" data-filter-example="category:">category:</button>
+                <button type="button" data-filter-example="source:">source:</button>
+              </div>
+            </form>
+
+            <div class="source-search-status" id="source-search-status" role="status" aria-live="polite"></div>
+            <section class="source-results-section" id="source-results-section">
+              <div class="source-result-controls" aria-label="Search filters and sorting">
+                <label for="source-sort">Sort by
+                  <select id="source-sort" form="source-search-form">
+                    <option value="default" selected>Default</option>
+                    <option value="citations">Most citations</option>
+                    <option value="recent">Most recent</option>
+                    <option value="author">First author</option>
+                  </select>
+                </label>
+                <label for="source-refereed">Publication status
+                  <select id="source-refereed" form="source-search-form">
+                    <option value="refereed" selected>Refereed (peer-reviewed)</option>
+                    <option value="non-refereed">Non-refereed</option>
+                    <option value="all">All publications</option>
+                  </select>
+                </label>
+                <label for="source-collection">Collection
+                  <select id="source-collection" form="source-search-form">
+                    <option value="all" selected>All collections</option>
+                    <option value="astronomy">Astronomy</option>
+                    <option value="physics">Physics</option>
+                    <option value="general">General</option>
+                  </select>
+                </label>
+                <label for="source-downloaded-filter">Downloaded papers
+                  <select id="source-downloaded-filter">
+                    <option value="all">Show all papers</option>
+                    <option value="hide" selected>Hide downloaded</option>
+                  </select>
+                </label>
+                <label for="source-min-citations">Minimum citations
+                  <input id="source-min-citations" form="source-search-form" type="number" min="0" max="9007199254740991" step="1" placeholder="Any count"/>
+                </label>
+              </div>
+              <header class="source-results-header" id="source-results-header" hidden>
+                <div><h3 id="source-results-title">Search results</h3></div>
+                <button class="source-import-button" id="source-import-selected" type="button" disabled><span id="source-import-label">Import selected</span> <span id="source-selected-count">0</span></button>
+              </header>
+              <div class="source-results" id="source-results"></div>
+            </section>
+            </div>
+            <section id="source-paper-page" class="source-paper-page" aria-label="Paper details" hidden>
+              <nav class="source-paper-navigation" aria-label="Paper navigation">
+                <button class="btn" id="source-paper-back" type="button">Back to results</button>
+                <div class="source-paper-import-actions">
+                  <button class="source-import-button" id="source-paper-import-current" type="button" disabled>Import this paper</button>
+                  <button class="source-import-button" id="source-paper-import" type="button" disabled>Import selected</button>
+                </div>
+              </nav>
+              <article id="source-paper-metadata"></article>
+              <div id="source-paper-relations" aria-live="polite"></div>
+            </section>
+          </section>
+
+          <section class="source-view" id="source-view-upload" role="tabpanel" aria-labelledby="source-tab-upload" hidden>
+            <div class="source-intro">
+              <h3>Upload a file</h3>
+              <p>Add PDF, text, or Markdown from your computer.</p>
+            </div>
+            <button class="upload-btn" id="files-upload-btn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload a file
+            </button>
+          </section>
+
+          <section class="source-view" id="source-view-saved" role="tabpanel" aria-labelledby="source-tab-saved" hidden>
+            <header class="saved-sources-header">
+              <div><h3>Saved sources</h3><p>Documents in the current research workspace.</p></div>
+              <div class="saved-sources-actions">
+              <button class="btn" id="saved-select-btn" type="button">Select</button>
+              <button class="upload-btn" id="saved-upload-btn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                Upload file
+              </button>
+              </div>
+            </header>
+            <div id="saved-selection-toolbar" class="saved-selection-toolbar" hidden>
+              <span id="saved-selection-count" aria-live="polite">0 selected</span>
+              <button class="btn" id="saved-select-all" type="button">Select all</button>
+              <button class="btn" id="saved-selection-cancel" type="button">Cancel</button>
+              <button class="btn" id="saved-delete-selected" type="button" disabled>Delete selected</button>
+            </div>
+            <p id="saved-selection-status" role="status" hidden></p>
+            <div class="files-grid" id="files-grid"><!-- populated by JS --></div>
+          </section>
+
+          <section class="source-view" id="source-view-references" role="tabpanel" aria-labelledby="source-tab-references" hidden>
+            <header class="saved-sources-header">
+              <div><h3>references.bib</h3></div>
+              <div class="references-actions">
+                <div class="references-view-switch" role="group" aria-label="References view">
+                  <button class="btn" id="references-preview-toggle" type="button" aria-pressed="true">Preview</button>
+                  <button class="btn" id="references-source-toggle" type="button" aria-pressed="false">BibTeX</button>
+                </div>
+                <button class="btn" id="references-reload" type="button">Reload file</button>
+                <button class="btn" id="references-save" type="button" disabled>Save changes</button>
+              </div>
+            </header>
+            <p id="references-status" role="status" aria-live="polite"></p>
+            <div id="references-preview">
+              <div class="references-tools">
+                <input id="references-search" type="search" placeholder="Search titles, authors, keywords…" aria-label="Search references"/>
+                <select id="references-type" aria-label="Filter by reference type"><option value="">All types</option></select>
+              </div>
+              <div class="references-tree-tools" role="group" aria-label="Expand or collapse reference properties">
+                <button class="btn" id="references-expand" type="button">Expand all</button>
+                <button class="btn" id="references-collapse" type="button">Collapse all</button>
+              </div>
+              <p id="references-warning" role="status" hidden></p>
+              <div id="references-tree" aria-label="BibTeX structure"></div>
+            </div>
+            <div id="references-source" class="wiki-editor-source" hidden>
+              <div class="wiki-editor-gutter" aria-hidden="true"><div id="references-line-numbers" class="wiki-editor-line-numbers"></div></div>
+              <textarea id="references-editor" wrap="soft" spellcheck="false" autocomplete="off" aria-label="References editor" aria-describedby="references-status" disabled hidden></textarea>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-notebooks">
+        <section class="notebook-workspace" aria-label="Notebook workspace">
+          <section class="notebook-runtime" id="notebook-recovery" hidden aria-label="Local Python environment">
+            <div><strong>Local Python</strong><span id="notebook-runtime-state">Stopped</span></div>
+            <details id="notebook-python-details"><summary>Python environment</summary><label for="notebook-python">Interpreter path</label><input id="notebook-python" value="python" spellcheck="false"/><button class="btn" id="notebook-python-save" type="button">Check environment</button><p>Install in your chosen environment:</p><code>python -m pip install "jupyterlab&gt;=4,&lt;5" ipykernel nbformat nbclient</code><p>Code runs locally with that Python environment’s file permissions.</p><pre id="notebook-environment"></pre></details>
+            <div class="notebook-create-actions"><button class="btn" id="notebook-start" type="button">Start Python</button><button class="btn" id="notebook-stop" type="button" disabled>Stop</button></div>
+          </section>
+          <p class="notebook-status" id="notebook-status" role="status" aria-live="polite"></p>
+          <div class="notebook-main">
+            <div class="notebook-stage"><div id="notebook-loading" class="notebook-loading" role="status" aria-live="polite" hidden><span class="notebook-spinner" aria-hidden="true"></span><p>Starting local Python and JupyterLab&hellip;</p></div><iframe id="notebook-frame" title="Embedded JupyterLab notebook editor" hidden></iframe><div id="notebook-preview"><div class="notebook-empty"><span class="notebook-mark" aria-hidden="true">[ ]</span><h2>A little room to work things out.</h2><p>Start with a note, a question, or a few lines of Python.<br>Bring in passages from papers and context from your wiki as you go.</p><button class="btn" id="notebook-empty-new" type="button">Create a notebook</button></div></div></div>
+            <aside id="notebook-tray" class="notebook-tray" aria-label="Notebook details" hidden><header><h3 id="notebook-tray-title"></h3><button class="btn" id="notebook-tray-close" type="button" aria-label="Close notebook details">Close</button></header><div id="notebook-tray-body"></div></aside>
+          </div>
+        </section>
+      </div>
+
+      <!-- Project handover panel -->
+      <div class="panel" id="panel-handover">
+        <div class="handover-shell">
+          <header class="handover-header">
+            <div>
+              <h2>Project Handover</h2>
+              <p class="handover-subtitle">Turn the accumulated workspace into a reviewed guide that a new researcher can act on.</p>
+            </div>
+            <button class="handover-link-button" id="handover-open-page" type="button">Open published guide</button>
+          </header>
+
+          <div id="handover-drafting" class="handover-drafting" role="status" aria-live="polite" tabindex="-1" hidden>
+            <span class="handover-spinner" aria-hidden="true"></span>
+            <p>Drafting your handover...</p>
+          </div>
+          <div class="handover-layout" id="handover-form">
+            <section class="handover-card" data-handover-stage="1" aria-labelledby="handover-project-title">
+              <div class="handover-card-header">
+                <div><h3 id="handover-project-title">Introduce your project</h3></div>
+              </div>
+
+              <label class="handover-field">Project name
+                <input id="handover-project-name" type="text" maxlength="120" placeholder="e.g. MeerKAT timing campaign"/>
+              </label>
+              <label class="handover-field">Project description
+                <textarea id="handover-description" rows="4" maxlength="4000" placeholder="Describe the research question, goals, and current state of the project."></textarea>
+              </label>
+              <label class="handover-field">Additional context <span>Optional</span>
+                <textarea id="handover-context" rows="3" maxlength="2000" placeholder="Add scope, deadlines, ownership, or details that may not yet be in the workspace."></textarea>
+              </label>
+
+            </section>
+
+            <section class="handover-card handover-materials" data-handover-stage="2" aria-labelledby="handover-materials-title" hidden>
+              <div class="handover-card-header">
+                <div><h3 id="handover-materials-title">What should be carried forward?</h3></div>
+                <span class="handover-count" id="handover-selection-count">0 selected</span>
+              </div>
+              <div class="handover-selector" id="handover-wiki-selector">
+                <div class="handover-selector-header">
+                  <label for="handover-wiki-input">Wiki pages</label>
+                  <button class="handover-primary" type="button" data-handover-toggle="wiki">Select all</button>
+                </div>
+                <input class="handover-autocomplete" id="handover-wiki-input" type="text" list="handover-wiki-options" placeholder="Type a wiki page name" autocomplete="off" disabled/>
+                <datalist id="handover-wiki-options"></datalist>
+                <div class="handover-selected" id="handover-wiki-selected" aria-label="Selected wiki pages"></div>
+              </div>
+
+              <div class="handover-selector" id="handover-file-selector">
+                <div class="handover-selector-header">
+                  <label for="handover-file-input">Sources</label>
+                  <button class="handover-primary" type="button" data-handover-toggle="raw">Select all</button>
+                </div>
+                <input class="handover-autocomplete" id="handover-file-input" type="text" list="handover-file-options" placeholder="Type a source filename" autocomplete="off" disabled/>
+                <datalist id="handover-file-options"></datalist>
+                <div class="handover-selected" id="handover-file-selected" aria-label="Selected sources"></div>
+              </div>
+
+              <div class="handover-selector" id="handover-notebook-selector">
+                <div class="handover-selector-header">
+                  <label for="handover-notebook-input">Research notebooks</label>
+                  <button class="handover-primary" type="button" data-handover-toggle="notebook">Select all</button>
+                </div>
+                <input class="handover-autocomplete" id="handover-notebook-input" type="text" list="handover-notebook-options" placeholder="Type a notebook name" autocomplete="off" disabled/>
+                <datalist id="handover-notebook-options"></datalist>
+                <div class="handover-selected" id="handover-notebook-selected" aria-label="Selected research notebooks"></div>
+              </div>
+            </section>
+
+            <section class="handover-card handover-draft" data-handover-stage="3" hidden aria-labelledby="handover-draft-title">
+              <div class="handover-card-header">
+                <div><h3 id="handover-draft-title">Handover draft</h3></div>
+                <div class="handover-view-tabs" role="tablist" aria-label="Draft view">
+                  <button class="active" id="handover-edit-tab" type="button" role="tab" aria-selected="true">Edit</button>
+                  <button id="handover-preview-tab" type="button" role="tab" aria-selected="false">Preview</button>
+                </div>
+              </div>
+
+              <div class="handover-empty" id="handover-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-5"/></svg>
+                <strong>Your draft will appear here</strong>
+                <p>Select the material that matters. PulsarWiki will trace the evidence, organise the project story, and surface gaps for your review.</p>
+              </div>
+              <textarea id="handover-editor" class="handover-editor" aria-label="Handover Markdown draft" spellcheck="true" hidden></textarea>
+              <div id="handover-preview" class="handover-preview md-body" hidden></div>
+
+              <div class="handover-review" id="handover-review" hidden>
+                <label>
+                  <input id="handover-reviewed" type="checkbox"/>
+                  <span><strong>I have reviewed this handover</strong></span>
+                </label>
+              </div>
+            </section>
+
+            <section class="handover-card handover-publication" data-handover-stage="4" aria-labelledby="handover-publication-title" hidden>
+              <div class="handover-card-header">
+                <div><h3 id="handover-publication-title">Publish your reviewed guide</h3></div>
+              </div>
+              <p class="handover-stage-copy">Your reviewed draft will be saved to the wiki with its index entry and activity log. Use Back to make any final edits.</p>
+              <div class="handover-publish-row">
+                <button class="handover-primary" id="handover-publish" type="button" disabled>Publish reviewed guide</button>
+              </div>
+            </section>
+          </div>
+          <div class="handover-status" id="handover-status" role="status" aria-live="polite"></div>
+          <nav class="handover-navigation" id="handover-navigation" aria-label="Handover stages">
+            <button class="handover-secondary" id="handover-back" type="button" hidden disabled>Back</button>
+            <span id="handover-stage-count">Step 1 of 4</span>
+            <button class="handover-primary" id="handover-next" type="button">Next</button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- In-app document viewer -->
+      <div class="panel" id="panel-document">
+        <div class="document-toolbar" id="pdf-toolbar" hidden>
+          <div class="toolbar-group">
+            <button class="document-icon-btn" id="pdf-prev" type="button" title="Previous page" aria-label="Previous page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <label class="page-control" aria-label="Current page">
+              <input id="pdf-page-input" type="number" min="1" value="1"/>
+              <span id="pdf-page-count">/ 1</span>
+            </label>
+            <button class="document-icon-btn" id="pdf-next" type="button" title="Next page" aria-label="Next page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="toolbar-divider"></div>
+          <div class="toolbar-group">
+            <button class="document-icon-btn" id="pdf-zoom-out" type="button" title="Zoom out" aria-label="Zoom out">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <span class="zoom-value" id="pdf-zoom-value">100%</span>
+            <button class="document-icon-btn" id="pdf-zoom-in" type="button" title="Zoom in" aria-label="Zoom in">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <button class="document-icon-btn toolbar-text-btn" id="pdf-fit" type="button">Fit width</button>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-rotate" type="button" title="Rotate clockwise">Rotate</button>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-highlights-toggle" type="button" aria-pressed="true" title="Disable highlighting and hide highlights">Highlights on</button>
+          </div>
+          <div class="toolbar-group reading-tools">
+            <input type="search" id="reading-find" placeholder="Find in paper" aria-label="Find in paper"/>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-find-next" type="button">Find next</button>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-region" type="button" aria-pressed="false">Select region</button>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-thumbnails-toggle" type="button" aria-pressed="false">Pages</button>
+            <button class="document-icon-btn toolbar-text-btn" id="reading-notes-toggle" type="button" aria-expanded="true">Reading notes</button>
+          </div>
+        </div>
+
+        <div class="reading-document-body">
+        <nav id="reading-thumbnails" aria-label="Paper pages" hidden></nav>
+        <div class="document-stage" id="document-stage">
+          <div class="document-status" id="document-status">
+            <span class="document-spinner"></span>
+            <span>Preparing document…</span>
+          </div>
+        </div>
+        <aside id="reading-notes" aria-label="Reading notes" hidden></aside>
+        </div>
+      </div>
+
+      <!-- Settings panel -->
+      <div class="panel" id="panel-settings">
+        <section class="settings-shell" aria-labelledby="chatgpt-settings-title">
+          <h2 id="chatgpt-settings-title" tabindex="-1">Settings</h2>
+          <h3>ChatGPT</h3>
+          <div class="chatgpt-account" id="chatgpt-account"></div>
+          <p class="chatgpt-connection-status" id="chatgpt-connection-status"></p>
+          <div class="chatgpt-connect-actions">
+            <button class="btn btn-primary" id="chatgpt-connect" type="button">Continue with ChatGPT</button>
+            <button class="btn" id="chatgpt-new-account" type="button">Use another account</button>
+          </div>
+          <label class="chatgpt-field" id="chatgpt-model-field">Subscription model
+            <select id="chatgpt-model"></select>
+          </label>
+          <div class="setup-error" id="chatgpt-error" role="alert"></div>
+          <form id="ads-settings-form" class="ads-settings">
+            <label class="chatgpt-field" for="ads-token" data-settings-update="nasa-ads-api-token">NASA ADS API token</label>
+            <input id="ads-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your token" aria-describedby="ads-token-note ads-token-status" required maxlength="4096"/>
+            <p id="ads-token-note">Saved on this computer for literature searches across workspaces.</p>
+            <p id="ads-token-status" role="status" aria-live="polite"></p>
+            <div class="chatgpt-connect-actions">
+              <button class="btn btn-primary" id="ads-token-save" type="submit">Save token</button>
+              <button class="btn" id="ads-token-remove" type="button" disabled>Remove saved token</button>
+            </div>
+          </form>
+          <div class="setup-actions">
+            <button class="btn btn-danger" id="chatgpt-forget" type="button">Forget account</button>
+            <button class="btn" id="chatgpt-disconnect" type="button">Disconnect</button>
+            <button class="btn btn-primary" id="chatgpt-model-save" type="button">Save model</button>
+          </div>
+        </section>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<dialog id="workspace-open-dialog" class="source-action-dialog" aria-labelledby="workspace-open-title">
+  <h3 id="workspace-open-title"></h3>
+  <form id="workspace-open-form">
+    <select id="workspace-open-item" aria-labelledby="workspace-open-title" size="8"></select>
+    <p id="workspace-open-status" role="status" hidden></p>
+    <div class="modal-actions">
+      <button id="workspace-open-cancel" class="btn" type="button">Cancel</button>
+      <button id="workspace-open-submit" class="btn btn-primary" type="submit" disabled>Open</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="workspace-new-dialog" class="source-action-dialog" aria-labelledby="workspace-new-title">
+  <h3 id="workspace-new-title">New project</h3>
+  <p id="workspace-create-error" role="alert" hidden></p>
+</dialog>
+
+<dialog id="source-action-dialog" class="source-action-dialog" aria-labelledby="source-action-title" aria-describedby="source-action-description">
+  <form id="source-action-form">
+    <h3 id="source-action-title"></h3>
+    <p id="source-action-description"></p>
+    <div id="source-action-name-field">
+      <label for="source-action-name">Display name</label>
+      <input id="source-action-name" type="text" autocomplete="off" />
+    </div>
+    <p id="source-action-error" role="alert" hidden></p>
+    <div class="modal-actions">
+      <button class="btn" id="source-action-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="source-action-submit" type="submit"></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Upload modal (hidden) -->
+<div class="modal-overlay" id="upload-modal" style="display:none">
+  <div class="modal">
+    <h3>Add Source File</h3>
+    <div class="dropzone" id="dropzone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      <p>Drop files here or click to browse</p>
+      <small>PDF, TXT, MD supported</small>
+    </div>
+    <input type="file" id="file-input" style="display:none" multiple accept=".pdf,.txt,.md"/>
+    <div id="upload-progress" style="margin-top:12px;font-size:12px;color:var(--text-2)"></div>
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- New page modal (hidden) -->
+<div class="modal-overlay" id="new-page-modal" style="display:none">
+  <div class="modal">
+    <h3>New Wiki Page</h3>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;color:var(--text-2);margin-bottom:6px">Page name (lowercase, hyphens)</label>
+      <input type="text" id="new-page-name" placeholder="e.g. timing-noise"
+        style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-1);font-family:var(--font);font-size:14px;outline:none"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="new-page-cancel">Cancel</button>
+      <button class="btn btn-primary" id="new-page-create">Create Page</button>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/marked/marked.umd.js"></script>
+<script src="/vendor/katex/katex.min.js"></script>
+<script src="/vendor/katex/contrib/auto-render.min.js"></script>
+<script src="/vendor/d3/d3.min.js"></script>
+<dialog id="reading-dialog" aria-labelledby="reading-dialog-title"><header><h2 id="reading-dialog-title"></h2><button type="button" class="btn" id="reading-dialog-close" aria-label="Close dialog">Close</button></header><div id="reading-dialog-body"></div><div id="reading-dialog-error" role="alert"></div></dialog>
+<div id="reading-selection-toolbar" role="region" aria-label="Highlight helper" hidden>
+  <div class="reading-helper-actions" role="toolbar" aria-label="Annotate selection">
+  <div class="reading-palette" role="group" aria-label="Highlight colour">
+    <label class="reading-swatch" data-color="yellow" title="Yellow"><input type="radio" name="reading-selection-color" data-selection-color="yellow" aria-label="Highlight yellow"/></label>
+    <label class="reading-swatch" data-color="green" title="Green"><input type="radio" name="reading-selection-color" data-selection-color="green" aria-label="Highlight green"/></label>
+    <label class="reading-swatch" data-color="pink" title="Pink"><input type="radio" name="reading-selection-color" data-selection-color="pink" aria-label="Highlight pink"/></label>
+    <label id="reading-selection-ai-color" class="reading-swatch" data-color="blue" title="AI highlight blue" hidden><input type="radio" name="reading-selection-color" data-selection-color="blue" aria-label="AI highlight blue" disabled/></label>
+  </div>
+  <button type="button" id="reading-selection-wiki" aria-expanded="false" aria-controls="reading-helper-details">Add to wiki</button>
+  <button type="button" id="reading-selection-ask" aria-expanded="false" aria-controls="reading-helper-details">Ask AI</button>
+  <button type="button" id="reading-selection-note" aria-expanded="false" aria-controls="reading-helper-details">Add note</button>
+  <button type="button" id="reading-selection-connect" title="Compares the selection and wiki excerpts using connected AI" aria-expanded="false" aria-controls="reading-helper-details">Connect to related knowledge</button>
+  <button type="button" id="reading-selection-notebook" aria-expanded="false" aria-controls="reading-helper-details">Add to notebook</button>
+  </div>
+  <section id="reading-helper-details" aria-labelledby="reading-helper-title" hidden>
+    <header><h2 id="reading-helper-title"></h2><button type="button" id="reading-helper-close" aria-label="Close highlight helper">Close</button></header>
+    <div id="reading-helper-body"></div>
+    <div id="reading-helper-error" role="alert"></div>
+  </section>
+</div>
+<div id="reading-toast" role="status" aria-live="polite" hidden></div>
+<section id="app-notifications" aria-label="Notifications" aria-live="polite" aria-relevant="additions"></section>
+<script src="/reading-performance.js"></script>
+<script src="/reading.js"></script>
+<script src="/workspaces.js"></script>
+<dialog id="notebook-dialog" aria-labelledby="notebook-dialog-title"><form id="notebook-dialog-form"><header><h2 id="notebook-dialog-title"></h2><button class="btn" id="notebook-dialog-close" type="button">Close</button></header><div id="notebook-dialog-body"></div><p id="notebook-dialog-error" role="alert"></p><button class="btn" id="notebook-dialog-submit" type="submit">Save</button></form></dialog>
+<script src="/notebooks.js"></script>
+<script src="/bibtex.js"></script>
+<script src="/orcid.js"></script>
+<script src="/source-editor.js"></script>
+<script src="/reference-orcids.js"></script>
+<script src="/references.js"></script>
+<script src="/source-selects.js"></script>
+<script src="/workspace-explorer.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

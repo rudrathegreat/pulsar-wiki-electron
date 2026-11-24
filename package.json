@@ -1,0 +1,28 @@
+{
+  "name": "llm-wiki-concept",
+  "version": "1.0.0",
+  "description": "PulsarWiki — local browser interface for the pulsar astronomy knowledge base",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test",
+    "build:notebooks": "npm --prefix integrations/jupyterlab ci && npm --prefix integrations/jupyterlab run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "d3": "^7.9.0",
+    "express": "^5.2.1",
+    "jose": "^6.1.0",
+    "katex": "^0.16.22",
+    "marked": "^18.0.2",
+    "openai": "^7.21.0",
+    "pdfjs-dist": "^5.4.624",
+    "ws": "^8.20.0",
+    "yazl": "^3.3.1"
+  }
+}
