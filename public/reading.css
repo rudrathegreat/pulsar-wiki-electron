@@ -75,7 +75,10 @@
 .reading-text-document #pdf-zoom-value, .reading-text-document #pdf-fit,
 .reading-text-document #reading-rotate, .reading-text-document #reading-region,
 .reading-text-document #reading-thumbnails-toggle { display:none; }
-.reading-page.reading-text-page { width:min(900px, 100%); min-height:100%; padding:32px; box-sizing:border-box; overflow:visible; contain:none; content-visibility:visible; }
+.reading-text-document .document-stage { background:#fff; color:#000; }
+[data-theme="dark"] .reading-text-document .document-stage { background:#000; color:#fff; }
+.reading-page.reading-text-page { width:min(900px, 100%); min-height:100%; padding:32px; box-sizing:border-box; background:transparent; overflow:visible; contain:none; content-visibility:visible; }
+[data-theme="dark"] .reading-text-page .reading-overlays { mix-blend-mode:normal; opacity:.4; }
 .reading-text-page .textLayer { position:relative; inset:auto; overflow:visible; line-height:1.6; }
 .reading-page.reading-text-page .textLayer pre { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; font:inherit; transform:none; }
 .reading-text-page .textLayer pre span { position:static; color:inherit; white-space:pre-wrap; font:inherit; transform:none; }

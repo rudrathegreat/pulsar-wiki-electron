@@ -465,4 +465,6 @@ All major updates to the wiki are recorded here.
 
 | 2026-11-24 | Workspace / application | Fixed switching between saved sources after viewing Markdown or plain text and rebuilt the Windows installer. [Reader implementation](../public/reading.js) [Installer build instructions](../README.md#windows-desktop-app) |
 
-**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the source-switching fix and Windows installer rebuild.
+| 2026-11-24 | Workspace / application | Fixed text and background contrast in Markdown and plain-text source previews in both themes and rebuilt the Windows installer. [Reader styles](../public/reading.css) [Installer build instructions](../README.md#windows-desktop-app) |
+
+**AI declaration**: This wiki page was updated using GPT-6, a model provided by OpenAI and accessed through Codex, with the latest set of changes applied on 2026-11-24. This update recorded the source preview contrast fix and the Windows installer rebuild.
